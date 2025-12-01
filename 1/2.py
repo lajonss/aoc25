@@ -28,6 +28,4 @@ try:
             state = state % 100
         #print(state, order, count)
 except EOFError:
-    if state == 0:
-        count += 1
     print(count)
