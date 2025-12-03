@@ -40,7 +40,6 @@ long get_divider(long magnitude, long step) {
         divider += (long)pow(10, current);
         current += step;
     }
-    stdout.printf("divider: %ld\n", divider);
     return divider;
 }
 
@@ -52,6 +51,22 @@ long get_magnitude_end(long magnitude) {
     return (long)pow(10, magnitude + 1) - 1;
 }
 
+bool is_invalid(long id, long magnitude) {
+    var step = 0L;
+    while(step < (magnitude + 1) / 2) {
+        step += 1;
+        var divider = get_divider(magnitude, step);
+        if (divider == 0) {
+            continue;
+        }
+        if (id % divider == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 long sum_invalid_ids_of_same_magnitude(long magnitude, long start = DEFAULT, long end = DEFAULT) {
     if (start == DEFAULT) {
         start = get_magnitude_start(magnitude);
@@ -61,27 +76,12 @@ long sum_invalid_ids_of_same_magnitude(long magnitude, long start = DEFAULT, lon
         end = get_magnitude_end(magnitude);
     }
 
-    var step = 0L;
     var sum = 0L;
-    while(step < (magnitude + 1) / 2) {
-        step += 1;
-        var divider = get_divider(magnitude, step);
-        if (divider == 0) {
-            continue;
+    for (var i = start; i <= end; i++) {
+        if (is_invalid(i, magnitude)) {
+            sum += i;
         }
-
-        var first = get_smallest_multiple_larger_or_equal_to(start, divider);
-        if (first.value > end) {
-            continue;
-        }
-
-        var last = get_largest_multiple_smaller_or_equal_to(end, divider);
-        var count = last.multiplier - first.multiplier + 1L;
-        var current = (first.multiplier + last.multiplier) * count * divider / 2L;
-        stdout.printf("%ld-%ld %ld\n", start, end, current);
-        sum += current;
     }
-
     return sum;
 }
 
