@@ -1,0 +1,2 @@
+- Expects input in src/Data/input.txt
+- dotnet run --project src/Data
