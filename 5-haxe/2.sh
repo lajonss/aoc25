@@ -1,0 +1,1 @@
+haxe --main Class2 --interp
