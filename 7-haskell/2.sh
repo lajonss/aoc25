@@ -1,0 +1,1 @@
+runghc 2.hs
