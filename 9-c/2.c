@@ -9,9 +9,16 @@ typedef struct Node {
 } Node;
 
 typedef struct Colors {
-  int offsetX, offsetY, rowSize;
-  bool *colors;
+  int offsetX, offsetY, rowSize, columnSize;
+  bool **colors;
 } Colors;
+
+Node createNode(int x, int y) {
+  Node node;
+  node.x = x;
+  node.y = y;
+  return node;
+}
 
 Node *readNext() {
   int x, y;
@@ -41,8 +48,7 @@ int min(int a, int b) { return a < b ? a : b; }
 int max(int a, int b) { return a > b ? a : b; }
 
 bool *getOffset(Colors colors, int x, int y) {
-  return &colors.colors[(y - colors.offsetY) * colors.rowSize + x -
-                        colors.offsetX];
+  return &colors.colors[y - colors.offsetY][x - colors.offsetX];
 }
 
 bool isMarked(Colors colors, Node node) {
@@ -103,6 +109,25 @@ void markPath(Colors colors, Node from, Node to) {
   mark(colors, to);
 }
 
+void fill(Colors colors) {
+  for (int y = colors.offsetY; y < colors.offsetY + colors.columnSize; y++) {
+    int start = INT_MIN, end = INT_MIN;
+    for (int x = colors.offsetX; x < colors.offsetX + colors.rowSize; x++) {
+      if (isMarked(colors, createNode(x, y))) {
+        if (start == INT_MIN) {
+          start = x;
+        }
+        end = x;
+      }
+    }
+    if (start != INT_MIN) {
+      for (int x = start; x <= end; x++) {
+        mark(colors, createNode(x, y));
+      }
+    }
+  }
+}
+
 Colors color(Node *first) {
   int minX = INT_MAX, maxX = INT_MIN, minY = INT_MAX, maxY = INT_MIN;
   for (Node *node = first; node != NULL; node = node->next) {
@@ -120,29 +145,42 @@ Colors color(Node *first) {
   output.offsetX = minX;
   output.offsetY = minY;
   output.rowSize = sizeX;
-  output.colors = (bool *)calloc(sizeX * sizeY, sizeof(bool));
+  output.columnSize = sizeY;
+  output.colors = (bool **)malloc(sizeY * sizeof(bool *));
+  for (int y = 0; y < sizeY; y++) {
+    output.colors[y] = (bool *)calloc(sizeX, sizeof(bool));
+  }
   Node *pointer;
   for (pointer = first; pointer->next != NULL; pointer = pointer->next) {
     markPath(output, *pointer, *pointer->next);
   }
   markPath(output, *pointer, *first);
+  fill(output);
   return output;
 }
 
 bool isValidPath(Node from, Node step, Node to, Colors colors) {
-  for (; !equals(from, to); from = add(from, step)) {//todo - equals axis-wise
+  for (; !equals(from, to); from = add(from, step)) {
     if (!isMarked(colors, from)) {
       return false;
     }
   }
-  return true;
+  return isMarked(colors, to);
 }
 
 bool isValid(Node a, Node b, Colors colors) {
-  return isValidPath(a, getStepX(a, b), b, colors) &&
-         isValidPath(a, getStepY(a, b), b, colors) &&
-         isValidPath(b, getStepX(b, a), a, colors) &&
-         isValidPath(b, getStepY(b, a), a, colors);
+  int minx = min(a.x, b.x);
+  int maxx = max(a.x, b.x);
+  int miny = min(a.y, b.y);
+  int maxy = max(a.y, b.y);
+  return isValidPath(createNode(minx, miny), createNode(1, 0),
+                     createNode(maxx, miny), colors) &&
+         isValidPath(createNode(minx, maxy), createNode(1, 0),
+                     createNode(maxx, maxy), colors) &&
+         isValidPath(createNode(minx, miny), createNode(0, 1),
+                     createNode(minx, maxy), colors) &&
+         isValidPath(createNode(maxx, miny), createNode(0, 1),
+                     createNode(maxx, maxy), colors);
 }
 
 long surface(Node a, Node b, Colors colors) {
