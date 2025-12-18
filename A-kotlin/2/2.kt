@@ -65,7 +65,7 @@ fun getPressCount(machine: Machine, currentState: JoltageState, cache: HashMap<J
     }
 
     if (currentState.values.all { it % 2 == 0 }) {
-return cache.getOrPut(
+    return cache.getOrPut(
         currentState,
         {
             safeDouble(
@@ -77,7 +77,7 @@ return cache.getOrPut(
     }
 
     val nextStatesRaw = getNextSteps(machine.buttonWirings, Step(currentState, 0))
-val nextStates =
+    val nextStates =
         nextStatesRaw.filter {
             it.state
                     .values
@@ -91,14 +91,14 @@ val nextStates =
         if ( it.state.values.all { it == 0 }) 0
         else cache.getOrPut(it.state, { getPressCount(machine, it.state, cache)})
     ) safeAdd it.pressCount }
-//     print("For ")
-//     println(currentState)
-// print("Possibilities: ")
+    // print("For ")
+    // println(currentState)
+    // print("Possibilities: ")
 
-// println(nextStates)
+    // println(nextStates)
 
-//     print("Evaluated: ")
-//     println(evaluatedStates)
+    // print("Evaluated: ")
+    // println(evaluatedStates)
 
     return evaluatedStates.minOrNull() ?: Int.MAX_VALUE
 }
