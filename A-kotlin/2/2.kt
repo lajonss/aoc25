@@ -1,3 +1,8 @@
+/*
+    Didn't manage this one on my own. Got lost in linear algebra shenaningans.
+    This solution is based on my friend's suggestion and a post: https://www.reddit.com/r/adventofcode/comments/1pk87hl/2025_day_10_part_2_bifurcate_your_way_to_victory
+ */
+
 data class Machine(
         val buttonWirings: List<Button>,
         val joltageRequirements: JoltageState,
@@ -9,6 +14,8 @@ data class ButtonState(val button: Button, val count: Int)
 
 data class JoltageState(val values: List<Int>)
 
+data class Step(val state: JoltageState, val pressCount: Int)
+
 fun getSingleMatchingButton(index: Int, buttons: List<Button>): Button? {
     val matching = buttons.groupBy { index in it.wirings }[true]
 
@@ -19,47 +26,69 @@ fun getSingleMatchingButton(index: Int, buttons: List<Button>): Button? {
     return matching[0]
 }
 
-fun getPressCount(buttons: List<Button>, currentState: JoltageState, pressCount: Int): Int? {
+fun safeDouble(value: Int): Int {
+    if (value == Int.MAX_VALUE) {
+        return Int.MAX_VALUE
+    }
+    return value * 2
+}
+
+infix fun Int.safeAdd(other: Int): Int {
+    if (this == Int.MAX_VALUE || other == Int.MAX_VALUE) {
+        return Int.MAX_VALUE
+    }
+    return this + other
+}
+
+fun getNextSteps(buttons: List<Button>, step: Step): List<Step> {
+    if (buttons.size == 0) {
+        return if (step.pressCount == 0) emptyList() else listOf(step)
+    }
+
+    val enabledState = apply(step.state, buttons.first())
+    val rest = buttons.drop(1)
+
+    if (enabledState.values.any { it < 0 }) {
+        return getNextSteps(rest, step)
+    }
+
+    return getNextSteps(rest, Step(enabledState, step.pressCount + 1)) + getNextSteps(rest, step)
+}
+
+fun getPressCount(machine: Machine, currentState: JoltageState, cache: HashMap<JoltageState, Int>): Int {
     if (currentState.values.all({ it == 0 })) {
-        return pressCount
+        return 0
     }
 
     if (currentState.values.any({ it < 0 })) {
-        return null
+        return Int.MAX_VALUE
     }
 
-    val nextButton = buttons.firstOrNull()
-    if (nextButton == null) {
-        return null
+    if (currentState.values.all { it % 2 == 0 }) {
+        return safeDouble(getPressCount(machine, JoltageState(currentState.values.map { it / 2 }), cache))
     }
 
-    for (index in (0 ..< currentState.values.size).filter { currentState.values[it] != 0 }) {
-        val singleMatching = getSingleMatchingButton(index, buttons)
-        if (singleMatching != null) {
-            val count = currentState.values[index]
-            val buttonState = ButtonState(singleMatching, count)
-            return getPressCount(
-                    buttons.filter { it != singleMatching },
-                    apply(currentState, buttonState),
-                    pressCount + count
-            )
-        }
-    }
+    val nextStatesRaw = getNextSteps(machine.buttonWirings, Step(currentState, 0))
+    val nextStates = nextStatesRaw.filter { it.state.values.filterIndexed {index, value -> currentState.values[index] % 2 != 0 && value % 2 != 0}.none() }
+    print("For ")
+    println(currentState)
+    print("Raw: ")
+    println(nextStatesRaw)
+    print("Possibilities: ")
+    println(nextStates)
+    val evaluatedStates = nextStates.map {(
+        if ( it.state.values.all { it == 0 }) 0
+        else cache.getOrPut(it.state, { getPressCount(machine, it.state, cache)})
+    ) safeAdd it.pressCount }
+    print("For ")
+    println(currentState)
+    print("Evaluated: ")
+    println(evaluatedStates)
+    return evaluatedStates.minOrNull() ?: Int.MAX_VALUE
+}
 
-    val rest = buttons.drop(1)
-    for (buttonState in getButtonStates(nextButton, currentState)) {
-        val nextPressCount =
-                getPressCount(
-                        rest,
-                        apply(currentState, buttonState),
-                        pressCount + buttonState.count
-                )
-        if (nextPressCount != null) {
-            return nextPressCount
-        }
-    }
-
-    return null
+fun apply(state: JoltageState, button: Button): JoltageState {
+    return apply(state, ButtonState(button, 1))
 }
 
 fun apply(state: JoltageState, buttonState: ButtonState): JoltageState {
@@ -87,6 +116,7 @@ fun parseMachine(line: String): Machine {
     val joltageRequirements =
             parts.last().drop(1).dropLast(1).split(",").map({ Integer.parseInt(it) })
     val machine = Machine(buttonWirings, JoltageState(joltageRequirements))
+    // println(machine)
     return machine
 }
 
@@ -107,8 +137,15 @@ fun main() {
             getLines()
                     .map(::parseMachine)
                     .map({
-                        val pressCount = getPressCount(it.buttonWirings, it.joltageRequirements, 0)
-                        if (pressCount == null) throw NullPointerException() else pressCount
+                        val cache = HashMap<JoltageState, Int>()
+                        val pressCount = getPressCount(it, it.joltageRequirements, cache)
+                        if (pressCount > 1000) {
+                            println()
+                            print("EEEEEEEEEEEEEEEEEEEEE: ")
+                            println(pressCount)
+                        }
+                        // println(cache)
+                        pressCount
                     })
                     .sum()
     )

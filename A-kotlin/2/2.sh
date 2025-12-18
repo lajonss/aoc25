@@ -1,0 +1,1 @@
+JAVA_OPTS="-Xmx16g" kotlin 2.kts
