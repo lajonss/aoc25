@@ -1,6 +1,10 @@
 /*
-   Didn't manage this one on my own. Got lost in linear algebra shenaningans.
-   This solution is based on my friend's suggestion and a post: https://www.reddit.com/r/adventofcode/comments/1pk87hl/2025_day_10_part_2_bifurcate_your_way_to_victory
+    Didn't manage this one on my own. Got lost in linear algebra shenaningans.
+    This solution is based on my friend's suggestion and a post: https://www.reddit.com/r/adventofcode/comments/1pk87hl/2025_day_10_part_2_bifurcate_your_way_to_victory
+    Introduced brute force fallback for small values, as I couldn't get the algorithm to compute proper value for this one:
+        [..##] (0,1) (0,2) (1,2) (2,3) (1) (1,2,3) {33,42,34,17}
+
+    TL;DR dynamic programming with step: (state % 2 == 0 -> state /= 2) and brute force fallback for small joltages
 */
 
 val BRUTE_FORCE_TRESHOLD = 10
@@ -28,6 +32,14 @@ infix fun Int.safeAdd(other: Int): Int {
         return Int.MAX_VALUE
     }
     return this + other
+}
+
+fun List<Int>.safeMin(): Int {
+    return this.minOrNull() ?: Int.MAX_VALUE
+}
+
+fun min(a: Int, b: Int): Int {
+    return if (a < b) a else b
 }
 
 fun getNextSteps(buttons: List<Button>, step: Step): List<Step> {
@@ -69,8 +81,7 @@ fun getPressCountBruteForce(
     // println(nextStates)
     // print("Evaluated: ")
     // println(evaluatedStates)
-
-    return evaluatedStates.minOrNull() ?: Int.MAX_VALUE
+    return evaluatedStates.safeMin()
 }
 
 fun getPressCount(
@@ -93,8 +104,9 @@ fun getPressCount(
         return Int.MAX_VALUE
     }
 
+    var doubled = Int.MAX_VALUE
     if (currentState.values.all { it % 2 == 0 }) {
-        val doubled =
+        doubled =
                 safeDouble(
                         getPressCountCached(
                                 machine,
@@ -103,12 +115,11 @@ fun getPressCount(
                                 doubleCheck
                         )
                 )
-        if (!doubleCheck || doubled != Int.MAX_VALUE) {
+        if ((!doubleCheck || doubled != Int.MAX_VALUE) && currentState.values.any { it > BRUTE_FORCE_TRESHOLD }) {
             return doubled
         }
     }
-
-    return getPressCountBruteForce(machine, currentState, cache, doubleCheck)
+    return min(getPressCountBruteForce(machine, currentState, cache, doubleCheck), doubled)
 }
 
 fun getPressCountCached(
