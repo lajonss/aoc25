@@ -7,8 +7,6 @@
     TL;DR dynamic programming with step: (state % 2 == 0 -> state /= 2) and brute force fallback for small joltages
 */
 
-val BRUTE_FORCE_TRESHOLD = 10
-
 data class Machine(
         val buttonWirings: List<Button>,
         val joltageRequirements: JoltageState,
@@ -115,7 +113,7 @@ fun getPressCount(
                                 doubleCheck
                         )
                 )
-        if ((!doubleCheck || doubled != Int.MAX_VALUE) && currentState.values.any { it > BRUTE_FORCE_TRESHOLD }) {
+        if ((!doubleCheck || doubled != Int.MAX_VALUE) && currentState.values.any { it > (machine.buttonWirings.size - 1) * 2 }) {
             return doubled
         }
     }
