@@ -1,7 +1,9 @@
 /*
-    Didn't manage this one on my own. Got lost in linear algebra shenaningans.
-    This solution is based on my friend's suggestion and a post: https://www.reddit.com/r/adventofcode/comments/1pk87hl/2025_day_10_part_2_bifurcate_your_way_to_victory
- */
+   Didn't manage this one on my own. Got lost in linear algebra shenaningans.
+   This solution is based on my friend's suggestion and a post: https://www.reddit.com/r/adventofcode/comments/1pk87hl/2025_day_10_part_2_bifurcate_your_way_to_victory
+*/
+
+val BRUTE_FORCE_TRESHOLD = 10
 
 data class Machine(
         val buttonWirings: List<Button>,
@@ -43,9 +45,43 @@ fun getNextSteps(buttons: List<Button>, step: Step): List<Step> {
     return getNextSteps(rest, Step(enabledState, step.pressCount + 1)) + getNextSteps(rest, step)
 }
 
-fun getPressCount(machine: Machine, currentState: JoltageState, cache: HashMap<JoltageState, Int>, doubleCheck: Boolean): Int {
-    print("Evaluating: ")
-    print(currentState)
+fun getPressCountBruteForce(
+        machine: Machine,
+        currentState: JoltageState,
+        cache: HashMap<JoltageState, Int>,
+        doubleCheck: Boolean
+): Int {
+    val nextStatesRaw = getNextSteps(machine.buttonWirings, Step(currentState, 0))
+    val nextStates = nextStatesRaw.filter { it.state.values.all { it % 2 == 0 } }
+
+    val evaluatedStates =
+            nextStates.map {
+                (if (it.state.values.all { it == 0 }) 0
+                else getPressCountCached(machine, it.state, cache, doubleCheck)) safeAdd
+                        it.pressCount
+            }
+    // print("For ")
+    // println(currentState)
+
+    // print("Raw: ")
+    // println(nextStatesRaw)
+    // print("Possibilities: ")
+    // println(nextStates)
+    // print("Evaluated: ")
+    // println(evaluatedStates)
+
+    return evaluatedStates.minOrNull() ?: Int.MAX_VALUE
+}
+
+fun getPressCount(
+        machine: Machine,
+        currentState: JoltageState,
+        cache: HashMap<JoltageState, Int>,
+        doubleCheck: Boolean
+): Int {
+    // print("Evaluating: ")
+    // print(currentState)
+
     // print(" with cache of ")
     // println(cache.size)
 
@@ -58,42 +94,40 @@ fun getPressCount(machine: Machine, currentState: JoltageState, cache: HashMap<J
     }
 
     if (currentState.values.all { it % 2 == 0 }) {
-        val doubled = safeDouble(
-            getPressCountCached(machine, JoltageState(currentState.values.map { it / 2 }), cache, doubleCheck)
-        )
+        val doubled =
+                safeDouble(
+                        getPressCountCached(
+                                machine,
+                                JoltageState(currentState.values.map { it / 2 }),
+                                cache,
+                                doubleCheck
+                        )
+                )
         if (!doubleCheck || doubled != Int.MAX_VALUE) {
             return doubled
         }
     }
 
-    val nextStatesRaw = getNextSteps(machine.buttonWirings, Step(currentState, 0))
-    val nextStates = nextStatesRaw.filter { it.state.values.all { it % 2 == 0 } }
-
-    val evaluatedStates = nextStates.map {(
-        if ( it.state.values.all { it == 0 }) 0
-        else getPressCountCached(machine, it.state, cache, doubleCheck)
-    ) safeAdd it.pressCount }
-    print("For ")
-    println(currentState)
-    // print("Raw: ")
-    // println(nextStatesRaw)
-    print("Possibilities: ")
-    println(nextStates)
-    print("Evaluated: ")
-    println(evaluatedStates)
-
-    return evaluatedStates.minOrNull() ?: Int.MAX_VALUE
+    return getPressCountBruteForce(machine, currentState, cache, doubleCheck)
 }
 
-fun getPressCountCached(machine: Machine, currentState: JoltageState, cache: HashMap<JoltageState, Int>, doubleCheck: Boolean): Int {
-    return cache.getOrPut(currentState, {
-        getPressCount(machine, currentState, cache, doubleCheck)
-    })
+fun getPressCountCached(
+        machine: Machine,
+        currentState: JoltageState,
+        cache: HashMap<JoltageState, Int>,
+        doubleCheck: Boolean
+): Int {
+    return cache.getOrPut(
+            currentState,
+            { getPressCount(machine, currentState, cache, doubleCheck) }
+    )
 }
 
 fun apply(state: JoltageState, button: Button): JoltageState {
     return JoltageState(
-        state.values.mapIndexed { index, value -> if (index in button.wirings) value - 1 else value }
+            state.values.mapIndexed { index, value ->
+                if (index in button.wirings) value - 1 else value
+            }
     )
 }
 
@@ -127,17 +161,29 @@ fun getLines(): Sequence<String> {
 
 fun main() {
     println(
-        getLines()
-            .map(::parseMachine)
-            .map({
-                var pressCount = getPressCountCached(it, it.joltageRequirements, HashMap<JoltageState, Int>(), false)
-                if (pressCount == Int.MAX_VALUE) {
-                    pressCount = getPressCountCached(it, it.joltageRequirements, HashMap<JoltageState, Int>(), true)
-                }
-                println(pressCount)
-                pressCount
-            })
-            .sum()
+            getLines()
+                    .map(::parseMachine)
+                    .map({
+                        var pressCount =
+                                getPressCountCached(
+                                        it,
+                                        it.joltageRequirements,
+                                        HashMap<JoltageState, Int>(),
+                                        false
+                                )
+                        if (pressCount == Int.MAX_VALUE) {
+                            pressCount =
+                                    getPressCountCached(
+                                            it,
+                                            it.joltageRequirements,
+                                            HashMap<JoltageState, Int>(),
+                                            true
+                                    )
+                        }
+                        println(pressCount)
+                        pressCount
+                    })
+                    .sum()
     )
 }
 
