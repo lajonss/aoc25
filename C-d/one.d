@@ -13,6 +13,22 @@ struct Region {
     size_t width, height;
     size_t[] requirements;
     bool[][] state;
+
+    void toString(scope void delegate(const(char)[]) sink) const
+    {
+        sink(to!string(width));
+        sink("x");
+        sink(to!string(height));
+        sink("\n");
+        foreach (y; 0 .. height)
+        {
+            foreach (x; 0 .. width)
+            {
+                sink(to!string(formatCell(state[y][x])));
+            }
+            sink("\n");
+        }
+    }
 }
 
 PresentShape flip(PresentShape shape)
@@ -185,6 +201,20 @@ struct PresentRequirement
 {
     PresentShape presentShape;
     size_t count;
+
+    void toString(scope void delegate(const(char)[]) sink) const
+    {
+        sink(to!string(count));
+        sink("\n");
+        foreach (y; 0 .. 3)
+        {
+            foreach (x; 0 .. 3)
+            {
+                sink(to!string(formatCell(presentShape[y][x])));
+            }
+            sink("\n");
+        }
+    }
 }
 
 bool canSatisfy(Region region, PresentRequirement[] requirements)
@@ -231,12 +261,16 @@ bool canSatisfy(Region region, PresentShape[] presentShapes)
         return true;
     }
 
-    PresentRequirement[] requirements;
-    for (size_t i = 0; i < presentShapes.length; i++)
-    {
-        requirements ~= PresentRequirement(presentShapes[i], region.requirements[i]);
-    }
-    return canSatisfy(region, requirements);
+    return false;
+
+    // PresentRequirement[] requirements;
+    // for (size_t i = 0; i < presentShapes.length; i++)
+    // {
+    //     requirements ~= PresentRequirement(presentShapes[i], region.requirements[i]);
+    // }
+    // auto result = canSatisfy(region, requirements);
+    // write(region, result, '\n');
+    // return result;
 }
 
 void main() {
