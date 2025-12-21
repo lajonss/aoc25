@@ -1,3 +1,7 @@
+/*
+    This is obviously wrong, but it happened to solve my input.
+*/
+
 import std.algorithm;
 import std.array;
 import std.concurrency;
